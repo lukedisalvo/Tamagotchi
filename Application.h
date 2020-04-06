@@ -23,6 +23,8 @@ struct _Application
     GFX gfx;
     //Software Timer
     SWTimer year;
+
+    int8_t* Happy;
 };
 typedef struct _Application Application;
 
@@ -39,7 +41,9 @@ void Application_updateCommunications(Application* app, HAL* hal);
 // character was received (number, letter, or other)
 void Application_interpretIncomingChar(Application* app, HAL* hal);
 
+
 // Generic circular increment function
 uint32_t CircularIncrement(uint32_t value, uint32_t maximum);
 
+void Application_updateHappiness(Application* app, HAL* hal);
 #endif /* APPLICATION_H_ */

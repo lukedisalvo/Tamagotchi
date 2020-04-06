@@ -99,7 +99,7 @@ void Application_loop(Application* app, HAL* hal)
     if (Button_isPressed(&hal->launchpadS1)) {
         LED_turnOn(&hal->launchpadLED1);
     }
-
+    Application_updateHappiness(app, hal);
     //Draws the rectangle in the LCD display
 
 
@@ -131,7 +131,7 @@ void Application_loop(Application* app, HAL* hal)
 
     // Update communications if either this is the first time the application is
     // run or if Boosterpack S1 is pressed.
-    if (Button_isTapped(&hal->boosterpackS1) || app->firstCall) {
+    if (Button_isTapped(&hal->boosterpackS2) || app->firstCall) {
         Application_updateCommunications(app, hal);
     }
 
@@ -155,15 +155,69 @@ void Application_loop(Application* app, HAL* hal)
         LED_toggle(&hal->launchpadLED2Red);
     }
 
-    //Baud Rate
+    //Lines 158-162 take the value in the update_Communications function and see the value for the Baudrate
+    //The Baudrate is a number from 0-3.
+    //By creating an integrer that points to the baudchoice, we can use the same fucntionality as presenting
+    //the age and by pressing Button 2, the baudrate should change based on the update_Communications
     int baudRate = app->baudChoice;
     char baud[BUFFER_SIZE];
     snprintf(baud, BUFFER_SIZE, "%d", baudRate);
     Graphics_drawString(&app->gfx.context, (int8_t*) baud, -1, 110, 0, true);
 
 
+
+
 }
 
+void Application_updateHappiness(Application* app, HAL* hal)
+{
+    static int Happiness = 5;
+    //char happy[BUFFER_SIZE];
+    //snprintf(happy, BUFFER_SIZE, "%d", Happiness);
+    if(SWTimer_expired(&app->year))
+    {
+        SWTimer_start(&app->year);
+        Happiness--;
+       /* if(Happiness == 0)
+        {
+            Happiness = Happiness;
+        }*/
+    }
+
+   /* if (Button_isTapped(&hal->boosterpackS1))
+    {
+        if (Happiness == 5)
+        {
+            Happiness = Happiness;
+        }
+        Happiness++;
+    }
+*/
+    switch (Happiness)
+    {
+        case 5:
+                Graphics_drawString(&app->gfx.context, "Happy: *****", -1, 0, 110, true);
+                break;
+
+        case 4:
+                Graphics_drawString(&app->gfx.context, "Happy: ****", -1, 0, 110, true);
+                break;
+        case 3:
+                Graphics_drawString(&app->gfx.context, "Happy: ***", -1, 0, 110, true);
+                break;
+        case 2:
+                Graphics_drawString(&app->gfx.context, "Happy: **", -1, 0, 110, true);
+                break;
+        case 1:
+                Graphics_drawString(&app->gfx.context, "Happy: *", -1, 0, 110, true);
+                break;
+        case 0:
+                Graphics_drawString(&app->gfx.context, "Happy: ", -1, 0, 110, true);
+                break;
+        default:
+                break;
+    }
+}
 /**
  * Updates which LEDs are lit and what baud rate the UART module communicates
  * with, based on what the application's baud choice is at the time this
@@ -181,7 +235,7 @@ void Application_updateCommunications(Application* app, HAL* hal)
     }
 
     // When Boosterpack S1 is tapped, circularly increment which baud rate is used.
-    if (Button_isTapped(&hal->boosterpackS1))
+    if (Button_isTapped(&hal->boosterpackS2))
     {
         uint32_t newBaudNumber = CircularIncrement((uint32_t) app->baudChoice, NUM_BAUD_CHOICES);
         app->baudChoice = (UART_Baudrate) newBaudNumber;
