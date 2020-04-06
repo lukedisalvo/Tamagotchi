@@ -64,6 +64,7 @@ uint32_t CircularIncrement(uint32_t value, uint32_t maximum)
  *
  * @return a completely initialized Application object
  */
+
 Application Application_construct()
 {
     Application app;
@@ -121,12 +122,12 @@ void Application_loop(Application* app, HAL* hal)
     Graphics_drawLineV(&app->gfx.context, 10, 20, 105);
     Graphics_drawLineV(&app->gfx.context, 120, 20, 105);
     Graphics_drawLineH(&app->gfx.context, 10, 120, 105);
-    Graphics_drawString(&app->gfx.context, "Age:", 10, 0, 0, false);
-    Graphics_drawString(&app->gfx.context, "BR:", -1, 90, 0, false);
-
-
-    Graphics_drawString(&app->gfx.context, "Happy:", -1, 0, 110, false);
-    Graphics_drawString(&app->gfx.context, "Energy:", -1, 0, 120, false);
+    //Draws "Age" and "BR" on the LCD display
+    Graphics_drawString(&app->gfx.context, "Age:", -1, 0, 0, true);
+    Graphics_drawString(&app->gfx.context, "BR:", -1, 90, 0, true);
+    //Draws "Happy" and "Energy" on the LCD display
+    Graphics_drawString(&app->gfx.context, "Happy:", -1, 0, 110, true);
+    Graphics_drawString(&app->gfx.context, "Energy:", -1, 0, 120, true);
 
     // Update communications if either this is the first time the application is
     // run or if Boosterpack S1 is pressed.
@@ -140,22 +141,25 @@ void Application_loop(Application* app, HAL* hal)
         Application_interpretIncomingChar(app, hal);
     }
 
-    int Age = 0;
-    for (Age = 0; Age < MAX_AGE; Age++)
+    //This creates a static variable for the the age and creates a char called buffer to store the string of age
+    //in the buffer. I print the buffer and use that in the drawString function in order to pass a variable.
+    //If the timer expires, then the timer is reset and the age is increased and displayed on the LCD.
+    static int Age = 0;
+    char buffer[BUFFER_SIZE];
+    snprintf(buffer, BUFFER_SIZE, "%d", Age);
+    Graphics_drawString(&app->gfx.context, (int8_t*) buffer, -1, 25, 0, true);
+    if(SWTimer_expired(&app->year))
     {
-        if(SWTimer_expired(&app->year))
-        {
-            char buffer[BUFFER_SIZE];
-            snprintf(buffer, BUFFER_SIZE, "%d", Age);
-            Graphics_drawString(&app->gfx.context, (int8_t*) buffer, -1, 25, 0, true);
-            SWTimer_start(&app->year);
-            Age++;
-            LED_toggle(&hal->launchpadLED2Red);
-
-        }
-
+        SWTimer_start(&app->year);
+        Age++;
+        LED_toggle(&hal->launchpadLED2Red);
     }
 
+    //Baud Rate
+    int baudRate = app->baudChoice;
+    char baud[BUFFER_SIZE];
+    snprintf(baud, BUFFER_SIZE, "%d", baudRate);
+    Graphics_drawString(&app->gfx.context, (int8_t*) baud, -1, 110, 0, true);
 
 
 }
