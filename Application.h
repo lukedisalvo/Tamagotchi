@@ -24,7 +24,12 @@ struct _Application
     //Software Timer
     SWTimer year;
 
-    int8_t* Happy;
+    char* Happy;
+    char* Energy;
+    bool Feed;
+    bool Move;
+    bool notHappy;
+    bool notEnergetic;
 };
 typedef struct _Application Application;
 
@@ -46,4 +51,8 @@ void Application_interpretIncomingChar(Application* app, HAL* hal);
 uint32_t CircularIncrement(uint32_t value, uint32_t maximum);
 
 void Application_updateHappiness(Application* app, HAL* hal);
+
+void Application_updateEnergy(Application* app, HAL* hal);
+
+void Application_Death(Application* app, HAL* hal);
 #endif /* APPLICATION_H_ */

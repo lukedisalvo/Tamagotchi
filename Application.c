@@ -6,14 +6,14 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 /* HAL and Application includes */
 #include <Application.h>
 #include <HAL/HAL.h>
 #include <HAL/Timer.h>
 
-#define BUFFER_SIZE 5
-#define MAX_AGE 999
+
 
 /**
  * The main entry point of your project. The main function should immediately
@@ -45,7 +45,9 @@ int main(void)
     {
         Application_loop(&app, &hal);
         HAL_refresh(&hal);
+
     }
+
 }
 
 /**
@@ -99,8 +101,18 @@ void Application_loop(Application* app, HAL* hal)
     if (Button_isPressed(&hal->launchpadS1)) {
         LED_turnOn(&hal->launchpadLED1);
     }
-    Application_updateHappiness(app, hal);
-    //Draws the rectangle in the LCD display
+
+
+    static int Age = 0;
+    char age1[10];
+    sprintf(age1, "Age: %d", Age);
+
+    int baudRate = app->baudChoice;
+    char baud[10];
+    sprintf(baud, "BR: %d", baudRate);
+
+    char* happy1 = app->Happy;
+    char* energy1 = app->Energy;
 
 
     //draws the circle in first position
@@ -122,12 +134,18 @@ void Application_loop(Application* app, HAL* hal)
     Graphics_drawLineV(&app->gfx.context, 10, 20, 105);
     Graphics_drawLineV(&app->gfx.context, 120, 20, 105);
     Graphics_drawLineH(&app->gfx.context, 10, 120, 105);
-    //Draws "Age" and "BR" on the LCD display
-    Graphics_drawString(&app->gfx.context, "Age:", -1, 0, 0, true);
-    Graphics_drawString(&app->gfx.context, "BR:", -1, 90, 0, true);
-    //Draws "Happy" and "Energy" on the LCD display
-    Graphics_drawString(&app->gfx.context, "Happy:", -1, 0, 110, true);
-    Graphics_drawString(&app->gfx.context, "Energy:", -1, 0, 120, true);
+    Graphics_drawString(&app->gfx.context, (int8_t*) baud, -1, 90, 0, true);
+    Graphics_drawString(&app->gfx.context, (int8_t*) age1, -1, 0, 0, true);
+    Graphics_drawString(&app->gfx.context, (int8_t*) happy1, -1, 0, 110, true);
+    Graphics_drawString(&app->gfx.context, (int8_t*) energy1, -1, 0, 120, true);
+    Application_updateHappiness(app, hal);
+    Application_updateEnergy(app, hal);
+    app->Feed = false;
+    app->Move = false;
+
+
+
+
 
     // Update communications if either this is the first time the application is
     // run or if Boosterpack S1 is pressed.
@@ -144,26 +162,19 @@ void Application_loop(Application* app, HAL* hal)
     //This creates a static variable for the the age and creates a char called buffer to store the string of age
     //in the buffer. I print the buffer and use that in the drawString function in order to pass a variable.
     //If the timer expires, then the timer is reset and the age is increased and displayed on the LCD.
-    static int Age = 0;
-    char buffer[BUFFER_SIZE];
-    snprintf(buffer, BUFFER_SIZE, "%d", Age);
-    Graphics_drawString(&app->gfx.context, (int8_t*) buffer, -1, 25, 0, true);
     if(SWTimer_expired(&app->year))
     {
+        LED_toggle(&hal->launchpadLED2Red);
         SWTimer_start(&app->year);
         Age++;
-        LED_toggle(&hal->launchpadLED2Red);
     }
 
     //Lines 158-162 take the value in the update_Communications function and see the value for the Baudrate
     //The Baudrate is a number from 0-3.
     //By creating an integrer that points to the baudchoice, we can use the same fucntionality as presenting
     //the age and by pressing Button 2, the baudrate should change based on the update_Communications
-    int baudRate = app->baudChoice;
-    char baud[BUFFER_SIZE];
-    snprintf(baud, BUFFER_SIZE, "%d", baudRate);
-    Graphics_drawString(&app->gfx.context, (int8_t*) baud, -1, 110, 0, true);
 
+    Application_Death(app, hal);
 
 
 
@@ -171,51 +182,130 @@ void Application_loop(Application* app, HAL* hal)
 
 void Application_updateHappiness(Application* app, HAL* hal)
 {
-    static int Happiness = 5;
-    //char happy[BUFFER_SIZE];
-    //snprintf(happy, BUFFER_SIZE, "%d", Happiness);
+   static int Happiness = 5;
+   app->notHappy = false;
     if(SWTimer_expired(&app->year))
     {
-        SWTimer_start(&app->year);
-        Happiness--;
-       /* if(Happiness == 0)
+        if(Happiness == 0)
         {
             Happiness = Happiness;
-        }*/
+        }
+        else
+        {
+            Happiness--;
+        }
     }
 
-   /* if (Button_isTapped(&hal->boosterpackS1))
+    if (app->Move == true)
     {
         if (Happiness == 5)
         {
             Happiness = Happiness;
         }
-        Happiness++;
+        else
+        {
+            Happiness++;
+
+        }
     }
-*/
+
+
     switch (Happiness)
     {
         case 5:
-                Graphics_drawString(&app->gfx.context, "Happy: *****", -1, 0, 110, true);
-                break;
+            app->Happy = "Happy: *****";
+            break;
 
         case 4:
-                Graphics_drawString(&app->gfx.context, "Happy: ****", -1, 0, 110, true);
-                break;
+            app->Happy = "Happy: **** ";
+            break;
         case 3:
-                Graphics_drawString(&app->gfx.context, "Happy: ***", -1, 0, 110, true);
-                break;
+            app->Happy = "Happy: ***  ";
+            break;
         case 2:
-                Graphics_drawString(&app->gfx.context, "Happy: **", -1, 0, 110, true);
-                break;
+            app->Happy = "Happy: **   ";
+            break;
         case 1:
-                Graphics_drawString(&app->gfx.context, "Happy: *", -1, 0, 110, true);
-                break;
+            app->Happy = "Happy: *    ";
+            break;
         case 0:
-                Graphics_drawString(&app->gfx.context, "Happy: ", -1, 0, 110, true);
+            app->Happy = "Happy:      ";
+            app->notHappy = true;
                 break;
         default:
                 break;
+    }
+}
+
+void Application_updateEnergy(Application* app, HAL* hal)
+{
+    static int Energy = 5;
+    app->notEnergetic = false;
+
+    if(SWTimer_expired(&app->year) || app->Move == true)
+    {
+        if(Energy == 0)
+        {
+            Energy = Energy;
+        }
+        else
+        {
+            Energy--;
+        }
+    }
+
+    if (app->Feed == true)
+    {
+        if (Energy == 5)
+        {
+            Energy = Energy;
+        }
+        else
+        {
+            Energy++;
+        }
+    }
+
+
+    switch (Energy)
+    {
+        case 5:
+            app->Energy = "Energy: *****";
+            break;
+
+        case 4:
+            app->Energy = "Energy: **** ";
+            break;
+        case 3:
+            app->Energy = "Energy: ***  ";
+            break;
+        case 2:
+            app->Energy = "Energy: **   ";
+            break;
+        case 1:
+            app->Energy = "Energy: *    ";
+            break;
+        case 0:
+            app->Energy = "Energy:      ";
+            app->notEnergetic = true;
+            break;
+        default:
+            break;
+    }
+}
+
+
+
+
+void Application_Death(Application* app, HAL* hal)
+{
+
+    if (app->notEnergetic == true && app->notHappy == true)
+    {
+        Graphics_clearDisplay(&app->gfx.context);
+        Graphics_drawString(&app->gfx.context, "You died", -1, 40, 64, true);
+        Graphics_drawString(&app->gfx.context, "Game Over", -1, 0, 0, true);
+        exit(0);
     }
 }
 /**
@@ -294,24 +384,75 @@ void Application_interpretIncomingChar(Application* app, HAL* hal)
 {
     // The character received from your serial terminal
     char rxChar = UART_getChar(&hal->uart);
+    char txChar = 'O';
+
 
     // The character to return back to sender. By default, we assume the letter
     // to send back is an 'O' (assume the character is an "other" character)
-    char txChar = 'O';
 
     // Numbers - if the character entered was a number, transfer back an 'N'
-    if (rxChar >= '0' && rxChar <= '9') {
+    if (rxChar >= '0' && rxChar <= '9')
+    {
         txChar = 'N';
     }
 
     // Letters - if the character entered was a letter, transfer back an 'L'
-    if ((rxChar >= 'a' && rxChar <= 'z') || (rxChar >= 'A' && rxChar <= 'Z')) {
-        txChar = 'L';
+    if ((rxChar >= 'a' && rxChar <= 'z') || (rxChar >= 'A' && rxChar <= 'Z'))
+    {
+        // Letters - if the character entered was a letter, transfer back an 'L'
+        if (rxChar == 'f' || rxChar == 'F')
+        {
+            txChar = 'f';
+        }
+        else if (rxChar == 'w'|| rxChar == 'W')
+        {
+            txChar = 'w';
+        }
+        else if (rxChar == 'a'|| rxChar == 'A')
+        {
+            txChar = 'a';
+        }
+        else if (rxChar == 's'|| rxChar == 'S')
+        {
+            txChar = 's';
+        }
+        else if (rxChar == 'd' || rxChar == 'D')
+        {
+            txChar = 'd';
+        }
+        else
+            txChar = 'L';
+    }
+
+    if (UART_canSend(&hal->uart))
+    {
+        UART_putChar(&hal->uart, txChar);
+    }
+    app->Feed = false;
+    app->Move = false;
+    static int num_Moves = 0;
+    if (txChar == 'f')
+    {
+        app->Feed = true;
+    }
+    else
+    {
+        app->Feed = false;
+    }
+    if (txChar == 'w' || txChar == 'a' || txChar == 's' || txChar == 'd')
+    {
+        num_Moves++;
+        if(num_Moves%4 == 0)
+        {
+            app->Move = true;
+        }
+        else
+        {
+            app->Move = false;
+        }
     }
 
     // Only send a character if the UART module can send it back
-    if (UART_canSend(&hal->uart)) {
-        UART_putChar(&hal->uart, txChar);
-    }
+
 }
 
