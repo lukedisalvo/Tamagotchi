@@ -30,6 +30,16 @@ struct _Application
     bool Move;
     bool notHappy;
     bool notEnergetic;
+    bool Dead;
+    char instruction;
+    int num_Moves;
+    int x;
+    int y;
+    int Eng;
+    int Hap;
+
+
+
 };
 typedef struct _Application Application;
 
@@ -55,4 +65,7 @@ void Application_updateHappiness(Application* app, HAL* hal);
 void Application_updateEnergy(Application* app, HAL* hal);
 
 void Application_Death(Application* app, HAL* hal);
+
+void Application_Move(Application* app, HAL* hal);
+
 #endif /* APPLICATION_H_ */

@@ -81,7 +81,14 @@ Application Application_construct()
 
     SWTimer_start(&app.year);
 
+    app.Eng = 5;
+    app.Hap = 5;
+    app.x = 30;
+    app.y = 40;
+    app.num_Moves = 0;
+
     return app;
+
 }
 
 /**
@@ -117,17 +124,7 @@ void Application_loop(Application* app, HAL* hal)
 
     //draws the circle in first position
     Graphics_setForegroundColor(&app->gfx.context, 230);
-    Graphics_fillCircle(&app->gfx.context, 30, 40, 15);
-    //draws the circle in second position
-    Graphics_fillCircle(&app->gfx.context, 64, 40, 15);
-    //draws the circle in third position
-    Graphics_fillCircle(&app->gfx.context, 100, 40, 15);
-    //draws the circle in fourth position
-    Graphics_fillCircle(&app->gfx.context, 30, 85, 15);
-    //draws the circle in fifth position
-    Graphics_fillCircle(&app->gfx.context, 64, 85, 15);
-    //draws the circle in sixth position
-    Graphics_fillCircle(&app->gfx.context, 100, 85, 15);
+
 
     Graphics_setForegroundColor(&app->gfx.context, 0);
     Graphics_drawLineH(&app->gfx.context, 10, 120, 20);
@@ -147,6 +144,7 @@ void Application_loop(Application* app, HAL* hal)
 
 
 
+
     // Update communications if either this is the first time the application is
     // run or if Boosterpack S1 is pressed.
     if (Button_isTapped(&hal->boosterpackS2) || app->firstCall) {
@@ -159,6 +157,7 @@ void Application_loop(Application* app, HAL* hal)
         Application_interpretIncomingChar(app, hal);
     }
 
+    Application_Move(app, hal);
     //This creates a static variable for the the age and creates a char called buffer to store the string of age
     //in the buffer. I print the buffer and use that in the drawString function in order to pass a variable.
     //If the timer expires, then the timer is reset and the age is increased and displayed on the LCD.
@@ -174,7 +173,8 @@ void Application_loop(Application* app, HAL* hal)
     //By creating an integrer that points to the baudchoice, we can use the same fucntionality as presenting
     //the age and by pressing Button 2, the baudrate should change based on the update_Communications
 
-    Application_Death(app, hal);
+
+    //Application_Death(app, hal);
 
 
 
@@ -182,42 +182,43 @@ void Application_loop(Application* app, HAL* hal)
 
 void Application_updateHappiness(Application* app, HAL* hal)
 {
-   static int Happiness = 5;
    app->notHappy = false;
     if(SWTimer_expired(&app->year))
     {
-        if(Happiness == 0)
+        if(app->Hap == 0)
         {
-            Happiness = Happiness;
+            app->Hap = app->Hap;
         }
         else
         {
-            Happiness--;
+            app->Hap--;
         }
     }
 
     if (app->Move == true)
     {
-        if (Happiness == 5)
+        if (app->Hap == 5)
         {
-            Happiness = Happiness;
+            app->Hap = app->Hap;
         }
         else
         {
-            Happiness++;
+            app->Hap++;
 
         }
     }
 
 
-    switch (Happiness)
+    switch (app->Hap)
     {
         case 5:
             app->Happy = "Happy: *****";
+
             break;
 
         case 4:
             app->Happy = "Happy: **** ";
+
             break;
         case 3:
             app->Happy = "Happy: ***  ";
@@ -239,35 +240,39 @@ void Application_updateHappiness(Application* app, HAL* hal)
 
 void Application_updateEnergy(Application* app, HAL* hal)
 {
-    static int Energy = 5;
+
     app->notEnergetic = false;
 
     if(SWTimer_expired(&app->year) || app->Move == true)
     {
-        if(Energy == 0)
+        if(app->Eng == 0)
         {
-            Energy = Energy;
+            app->Eng = app->Eng;
         }
         else
         {
-            Energy--;
+            app->Eng--;
         }
     }
 
     if (app->Feed == true)
     {
-        if (Energy == 5)
+        if (app->Eng == 5)
         {
-            Energy = Energy;
+            app->Eng = app->Eng;
         }
         else
         {
-            Energy++;
+            app->Eng++;
         }
+    }
+    if (app->Move == true)
+    {
+        app->Eng--;
     }
 
 
-    switch (Energy)
+    switch (app->Eng)
     {
         case 5:
             app->Energy = "Energy: *****";
@@ -275,6 +280,7 @@ void Application_updateEnergy(Application* app, HAL* hal)
 
         case 4:
             app->Energy = "Energy: **** ";
+
             break;
         case 3:
             app->Energy = "Energy: ***  ";
@@ -430,8 +436,8 @@ void Application_interpretIncomingChar(Application* app, HAL* hal)
     }
     app->Feed = false;
     app->Move = false;
-    static int num_Moves = 0;
-    if (txChar == 'f')
+    app->instruction = txChar;
+    if (app->instruction == 'f')
     {
         app->Feed = true;
     }
@@ -439,10 +445,10 @@ void Application_interpretIncomingChar(Application* app, HAL* hal)
     {
         app->Feed = false;
     }
-    if (txChar == 'w' || txChar == 'a' || txChar == 's' || txChar == 'd')
+    if (app->instruction == 'w' || app->instruction == 'a' || app->instruction == 's' || app->instruction == 'd')
     {
-        num_Moves++;
-        if(num_Moves%4 == 0)
+        app->num_Moves++;
+        if(app->num_Moves%4 == 0)
         {
             app->Move = true;
         }
@@ -452,7 +458,102 @@ void Application_interpretIncomingChar(Application* app, HAL* hal)
         }
     }
 
-    // Only send a character if the UART module can send it back
+
 
 }
 
+
+void update_Aging(Application* app, HAL* hal)
+{
+
+}
+
+
+void Application_Move(Application* app, HAL* hal)
+{
+    Graphics_fillCircle(&app->gfx.context, app->x, app->y, 15);
+    if (app->Eng > 0)
+    {
+        if (app->instruction == 'w')
+        {
+            if ((app->x == 30 && app->y == 85) || (app->x == 64 && app->y == 85) || (app->x == 98 && app->y == 85))
+            {
+                app->x = app->x;
+                app->y = app->y - 45;
+                Graphics_fillCircle(&app->gfx.context, app->x, app->y, 15);
+                Graphics_setForegroundColor(&app->gfx.context, 16777215);
+                Graphics_fillCircle(&app->gfx.context, app->x, app->y + 45, 15);
+                app->num_Moves++;
+            }
+            else
+            {
+                app->x = app->x;
+                app->y = app->y;
+                Graphics_fillCircle(&app->gfx.context, app->x, app->y, 15);
+                app->num_Moves = app->num_Moves;
+            }
+        }
+        if (app->instruction == 's')
+        {
+            if ((app->x == 30 && app->y == 40) || (app->x == 64 && app->y == 40) || (app->x == 98 && app->y == 40))
+            {
+                app->x = app->x;
+                app->y = app->y + 45;
+                Graphics_fillCircle(&app->gfx.context, app->x, app->y, 15);
+                Graphics_setForegroundColor(&app->gfx.context, 16777215);
+                Graphics_fillCircle(&app->gfx.context, app->x, app->y - 45, 15);
+                app->num_Moves++;
+            }
+            else
+            {
+                app->x = app->x;
+                app->y = app->y;
+                Graphics_fillCircle(&app->gfx.context, app->x, app->y, 15);
+                app->num_Moves = app->num_Moves;
+            }
+        }
+        if (app->instruction == 'a')
+        {
+            if ((app->x == 98 && app->y == 40) || (app->x == 98 && app->y == 85) || (app->x == 64 && app->y == 40) || (app->x == 64 && app->y == 85))
+            {
+                app->x = app->x - 34;
+                app->y = app->y;
+                Graphics_fillCircle(&app->gfx.context, app->x, app->y, 15);
+                Graphics_setForegroundColor(&app->gfx.context, 16777215);
+                Graphics_fillCircle(&app->gfx.context, app->x + 34, app->y, 15);
+                app->num_Moves++;
+                app->instruction = NULL;
+            }
+            else
+            {
+                app->x = app->x;
+                app->y = app->y;
+                Graphics_fillCircle(&app->gfx.context, app->x, app->y, 15);
+                app->num_Moves = app->num_Moves;
+            }
+        }
+        if (app->instruction == 'd')
+        {
+            if ((app->x == 30 && app->y == 40) || (app->x == 64 && app->y == 40) || (app->x == 30 && app->y == 85) || (app->x == 64 && app->y == 85))
+            {
+                app->x = app->x + 34;
+                app->y = app->y;
+                Graphics_fillCircle(&app->gfx.context, app->x, app->y, 15);
+                Graphics_setForegroundColor(&app->gfx.context, 16777215);
+                Graphics_fillCircle(&app->gfx.context, app->x - 34, app->y, 15);
+                app->num_Moves++;
+                app->instruction = NULL;
+            }
+            else
+            {
+                app->x = app->x;
+                app->y = app->y;
+                Graphics_fillCircle(&app->gfx.context, app->x, app->y, 15);
+                app->num_Moves = app->num_Moves;
+            }
+
+        }
+    }
+
+
+}
