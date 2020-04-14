@@ -2,15 +2,15 @@
 * @file     system_msp432p401r.c
 * @brief    CMSIS Cortex-M4F Device Peripheral Access Layer Source File for
 *           MSP432P401R
-* @version  3.231
-* @date     01/26/18
+* @version  3.100
+* @date     04/18/17
 *
 * @note     View configuration instructions embedded in comments
 *
 ******************************************************************************/
 //*****************************************************************************
 //
-// Copyright (C) 2015 - 2018 Texas Instruments Incorporated - http://www.ti.com/
+// Copyright (C) 2015 - 2017 Texas Instruments Incorporated - http://www.ti.com/
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -100,9 +100,13 @@ uint32_t SystemCoreClock = __SYSTEM_CLOCK;  /*!< System Clock Frequency (Core Cl
  */
 void SystemCoreClockUpdate(void)
 {
-    uint32_t source = 0, divider = 0, dividerValue = 0, centeredFreq = 0, calVal = 0;
-    int16_t dcoTune = 0;
-    float dcoConst = 0.0;
+    uint32_t source, divider;
+    uint8_t dividerValue;
+
+    float dcoConst;
+    int32_t calVal;
+    uint32_t centeredFreq;
+    int16_t dcoTune;
 
     divider = (CS->CTL1 & CS_CTL1_DIVM_MASK) >> CS_CTL1_DIVM_OFS;
     dividerValue = 1 << divider;
@@ -191,13 +195,13 @@ void SystemCoreClockUpdate(void)
 
             if (BITBAND_PERI(CS->CTL0, CS_CTL0_DCORES_OFS))
             {
-                dcoConst = *((volatile const float *) &TLV->DCOER_CONSTK_RSEL04);
+                dcoConst = *((float *) &TLV->DCOER_CONSTK_RSEL04);
                 calVal = TLV->DCOER_FCAL_RSEL04;
             }
             /* Internal Resistor */
             else
             {
-                dcoConst = *((volatile const float *) &TLV->DCOIR_CONSTK_RSEL04);
+                dcoConst = *((float *) &TLV->DCOIR_CONSTK_RSEL04);
                 calVal = TLV->DCOIR_FCAL_RSEL04;
             }
 

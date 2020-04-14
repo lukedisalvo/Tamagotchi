@@ -26,6 +26,8 @@
  * with some behavior of a code snippet you may have, we DO NOT RECOMMEND
  * modifying this function in any way.
  */
+
+//extern Graphics_Image max8BPP_UNCOMP;
 int main(void)
 {
     // Stop Watchdog Timer - THIS SHOULD ALWAYS BE THE FIRST LINE OF YOUR MAIN
@@ -77,6 +79,7 @@ Application Application_construct()
 
     app.gfx = GFX_construct(GRAPHICS_COLOR_WHITE, GRAPHICS_COLOR_WHITE);
 
+
     app.year = SWTimer_construct(3000);
 
     SWTimer_start(&app.year);
@@ -86,7 +89,7 @@ Application Application_construct()
     app.x = 30;
     app.y = 40;
     app.num_Moves = 0;
-
+    app.Age = 0;
     return app;
 
 }
@@ -103,86 +106,87 @@ Application Application_construct()
  */
 void Application_loop(Application* app, HAL* hal)
 {
-   //Non-Blocking test. Pressing LauchpadS1 turns launchpad LED1 on and releasing it turns it off
+    //Non-Blocking test. Pressing LauchpadS1 turns launchpad LED1 on and releasing it turns it off
     LED_turnOff(&hal->launchpadLED1);
-    if (Button_isPressed(&hal->launchpadS1)) {
+    if (Button_isPressed(&hal->launchpadS1))
+    {
         LED_turnOn(&hal->launchpadLED1);
     }
-
-
-    static int Age = 0;
-    char age1[10];
-    sprintf(age1, "Age: %d", Age);
-
-    int baudRate = app->baudChoice;
-    char baud[10];
-    sprintf(baud, "BR: %d", baudRate);
-
-    char* happy1 = app->Happy;
-    char* energy1 = app->Energy;
-
-
-    //draws the circle in first position
-    Graphics_setForegroundColor(&app->gfx.context, 230);
-
-
-    Graphics_setForegroundColor(&app->gfx.context, 0);
-    Graphics_drawLineH(&app->gfx.context, 10, 120, 20);
-    Graphics_drawLineV(&app->gfx.context, 10, 20, 105);
-    Graphics_drawLineV(&app->gfx.context, 120, 20, 105);
-    Graphics_drawLineH(&app->gfx.context, 10, 120, 105);
-    Graphics_drawString(&app->gfx.context, (int8_t*) baud, -1, 90, 0, true);
-    Graphics_drawString(&app->gfx.context, (int8_t*) age1, -1, 0, 0, true);
-    Graphics_drawString(&app->gfx.context, (int8_t*) happy1, -1, 0, 110, true);
-    Graphics_drawString(&app->gfx.context, (int8_t*) energy1, -1, 0, 120, true);
-    Application_updateHappiness(app, hal);
-    Application_updateEnergy(app, hal);
-    app->Feed = false;
-    app->Move = false;
-
-
-
-
-
-
-    // Update communications if either this is the first time the application is
-    // run or if Boosterpack S1 is pressed.
-    if (Button_isTapped(&hal->boosterpackS2) || app->firstCall) {
-        Application_updateCommunications(app, hal);
-    }
-
-    // Interpret a new character if one is received.
-    if (UART_hasChar(&hal->uart))
+    if ((app->notEnergetic ==  0 && app->notHappy == 0) || (app->notEnergetic == 0   && app->notHappy == 1) || (app->notEnergetic == 1 && app->notHappy == 0))
     {
-        Application_interpretIncomingChar(app, hal);
-    }
+        char age1[10];
+        sprintf(age1, "Age: %d", app->Age);
 
-    Application_Move(app, hal);
-    //This creates a static variable for the the age and creates a char called buffer to store the string of age
-    //in the buffer. I print the buffer and use that in the drawString function in order to pass a variable.
-    //If the timer expires, then the timer is reset and the age is increased and displayed on the LCD.
-    if(SWTimer_expired(&app->year))
+        int baudRate = app->baudChoice;
+        char baud[10];
+        sprintf(baud, "BR: %d", baudRate);
+
+        char* happy1 = app->Happy;
+        char* energy1 = app->Energy;
+
+
+        Graphics_setForegroundColor(&app->gfx.context, 230);
+
+        Graphics_setForegroundColor(&app->gfx.context, 0);
+        Graphics_drawLineH(&app->gfx.context, 10, 120, 20);
+        Graphics_drawLineV(&app->gfx.context, 10, 20, 105);
+        Graphics_drawLineV(&app->gfx.context, 120, 20, 105);
+        Graphics_drawLineH(&app->gfx.context, 10, 120, 105);
+        Graphics_drawString(&app->gfx.context, (int8_t*) baud, -1, 90, 0, true);
+        Graphics_drawString(&app->gfx.context, (int8_t*) age1, -1, 0, 0, true);
+        Graphics_drawString(&app->gfx.context, (int8_t*) happy1, -1, 0, 110, true);
+        Graphics_drawString(&app->gfx.context, (int8_t*) energy1, -1, 0, 120, true);
+        Application_updateHappiness(app, hal);
+        Application_updateEnergy(app, hal);
+        app->Feed = false;
+        app->Move = false;
+
+
+        // Update communications if either this is the first time the application is
+        // run or if Boosterpack S1 is pressed.
+        if (Button_isTapped(&hal->boosterpackS2) || app->firstCall) {
+            Application_updateCommunications(app, hal);
+        }
+
+
+        // Interpret a new character if one is received.
+        if (UART_hasChar(&hal->uart))
+        {
+            Application_interpretIncomingChar(app, hal);
+            Application_Move(app, hal);
+        }
+
+
+        //This creates a static variable for the the age and creates a char called buffer to store the string of age
+        //in the buffer. I print the buffer and use that in the drawString function in order to pass a variable.
+        //If the timer expires, then the timer is reset and the age is increased and displayed on the LCD.
+        if(SWTimer_expired(&app->year))
+        {
+            LED_toggle(&hal->launchpadLED2Red);
+            SWTimer_start(&app->year);
+            app->Age++;
+        }
+        Application_Updateaging(app, hal);
+        //Lines 158-162 take the value in the update_Communications function and see the value for the Baudrate
+        //The Baudrate is a number from 0-3.
+        //By creating an integrer that points to the baudchoice, we can use the same fucntionality as presenting
+        //the age and by pressing Button 2, the baudrate should change based on the update_Communications
+        if (app->notEnergetic == true && app->notHappy == true)
+        {
+            Graphics_clearDisplay(&app->gfx.context);
+        }
+    }
+    else
     {
-        LED_toggle(&hal->launchpadLED2Red);
-        SWTimer_start(&app->year);
-        Age++;
+        Application_Death(app, hal);
     }
-
-    //Lines 158-162 take the value in the update_Communications function and see the value for the Baudrate
-    //The Baudrate is a number from 0-3.
-    //By creating an integrer that points to the baudchoice, we can use the same fucntionality as presenting
-    //the age and by pressing Button 2, the baudrate should change based on the update_Communications
-
-
-    //Application_Death(app, hal);
-
 
 
 }
 
 void Application_updateHappiness(Application* app, HAL* hal)
 {
-   app->notHappy = false;
+    app->notHappy = 0;
     if(SWTimer_expired(&app->year))
     {
         if(app->Hap == 0)
@@ -231,7 +235,7 @@ void Application_updateHappiness(Application* app, HAL* hal)
             break;
         case 0:
             app->Happy = "Happy:      ";
-            app->notHappy = true;
+            app->notHappy = 1;
                 break;
         default:
                 break;
@@ -240,8 +244,7 @@ void Application_updateHappiness(Application* app, HAL* hal)
 
 void Application_updateEnergy(Application* app, HAL* hal)
 {
-
-    app->notEnergetic = false;
+    app->notEnergetic = 0;
 
     if(SWTimer_expired(&app->year) || app->Move == true)
     {
@@ -266,10 +269,6 @@ void Application_updateEnergy(Application* app, HAL* hal)
             app->Eng++;
         }
     }
-    if (app->Move == true)
-    {
-        app->Eng--;
-    }
 
 
     switch (app->Eng)
@@ -293,7 +292,7 @@ void Application_updateEnergy(Application* app, HAL* hal)
             break;
         case 0:
             app->Energy = "Energy:      ";
-            app->notEnergetic = true;
+            app->notEnergetic = 1;
             break;
         default:
             break;
@@ -305,14 +304,10 @@ void Application_updateEnergy(Application* app, HAL* hal)
 
 void Application_Death(Application* app, HAL* hal)
 {
-
-    if (app->notEnergetic == true && app->notHappy == true)
-    {
-        Graphics_clearDisplay(&app->gfx.context);
-        Graphics_drawString(&app->gfx.context, "You died", -1, 40, 64, true);
-        Graphics_drawString(&app->gfx.context, "Game Over", -1, 0, 0, true);
-        exit(0);
-    }
+    //Graphics_drawImage(&app->gfx.context, &&max8BPP_UNCOMP, 0, 0);
+    Graphics_setForegroundColor(&app->gfx.context, 0);
+    Graphics_drawString(&app->gfx.context, "You died", -1, 40, 64, true);
+    Graphics_drawString(&app->gfx.context, "Game Over", -1, 0, 0, true);
 }
 /**
  * Updates which LEDs are lit and what baud rate the UART module communicates
@@ -326,7 +321,8 @@ void Application_updateCommunications(Application* app, HAL* hal)
 {
     // When this application first loops, the proper LEDs aren't lit. The
     // firstCall flag is used to ensure that the
-    if (app->firstCall) {
+    if (app->firstCall)
+    {
         app->firstCall = false;
     }
 
@@ -445,26 +441,50 @@ void Application_interpretIncomingChar(Application* app, HAL* hal)
     {
         app->Feed = false;
     }
-    if (app->instruction == 'w' || app->instruction == 'a' || app->instruction == 's' || app->instruction == 'd')
+    if(app->num_Moves%4 == 0)
     {
-        app->num_Moves++;
-        if(app->num_Moves%4 == 0)
-        {
-            app->Move = true;
-        }
-        else
-        {
-            app->Move = false;
-        }
+        app->Move = true;
     }
+    else
+    {
+        app->Move = false;
+    }
+
 
 
 
 }
 
 
-void update_Aging(Application* app, HAL* hal)
+void Application_Updateaging(Application* app, HAL* hal)
 {
+
+    static int adult = 0;
+    if (app->Eng >= 4 && app->Hap >= 4 && app->Age >= 4)
+    {
+        adult = 1;
+    }
+    if (app->Age == 0)
+    {
+        Graphics_setForegroundColor(&app->gfx.context, 0);
+        Application_Move(app, hal);
+    }
+    if (app->Age >= 1 && app->Age <= 3)
+    {
+        Graphics_setForegroundColor(&app->gfx.context, 8190976);
+        Application_Move(app, hal);
+    }
+    if (app->Age >= 4 && adult == 1)
+    {
+        Graphics_setForegroundColor(&app->gfx.context, 49151);
+        Application_Move(app, hal);
+    }
+    if (app->Age >= 4 && adult == 0)
+    {
+        Graphics_setForegroundColor(&app->gfx.context, 8190976);
+        Application_Move(app, hal);
+    }
+
 
 }
 

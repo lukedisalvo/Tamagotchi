@@ -28,8 +28,8 @@ struct _Application
     char* Energy;
     bool Feed;
     bool Move;
-    bool notHappy;
-    bool notEnergetic;
+    int notHappy;
+    int notEnergetic;
     bool Dead;
     char instruction;
     int num_Moves;
@@ -37,6 +37,8 @@ struct _Application
     int y;
     int Eng;
     int Hap;
+    int Age;
+    bool state;
 
 
 
@@ -67,5 +69,7 @@ void Application_updateEnergy(Application* app, HAL* hal);
 void Application_Death(Application* app, HAL* hal);
 
 void Application_Move(Application* app, HAL* hal);
+
+void Application_Updateaging(Application* app, HAL* hal);
 
 #endif /* APPLICATION_H_ */
