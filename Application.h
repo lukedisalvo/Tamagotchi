@@ -72,4 +72,8 @@ void Application_Move(Application* app, HAL* hal);
 
 void Application_Updateaging(Application* app, HAL* hal);
 
+void Application_Move2(Application* app, HAL* hal);
+
+void Application_Move3(Application* app, HAL* hal);
+
 #endif /* APPLICATION_H_ */
