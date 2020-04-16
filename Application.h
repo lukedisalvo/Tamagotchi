@@ -30,7 +30,6 @@ struct _Application
     bool Move;
     int notHappy;
     int notEnergetic;
-    bool Dead;
     char instruction;
     int num_Moves;
     int x;
@@ -38,7 +37,8 @@ struct _Application
     int Eng;
     int Hap;
     int Age;
-    bool state;
+    int HapG;
+    bool warmth;
 
 
 
@@ -75,5 +75,9 @@ void Application_Updateaging(Application* app, HAL* hal);
 void Application_Move2(Application* app, HAL* hal);
 
 void Application_Move3(Application* app, HAL* hal);
+
+void Application_HapGraphics(Application* app, HAL* hal);
+
+void Application_EngGraphics(Application* app, HAL* hal);
 
 #endif /* APPLICATION_H_ */
