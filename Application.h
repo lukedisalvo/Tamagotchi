@@ -80,4 +80,6 @@ void Application_HapGraphics(Application* app, HAL* hal);
 
 void Application_EngGraphics(Application* app, HAL* hal);
 
+void Application_sideGraphics(Application* app, HAL* hal);
+
 #endif /* APPLICATION_H_ */

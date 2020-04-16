@@ -35,9 +35,11 @@ extern tImage GameOver8BPP_UNCOMP;
 extern tImage Feelsgoodman8BPP_UNCOMP;
 extern tImage MonkaS8BPP_UNCOMP;
 extern tImage PepeHands8BPP_UNCOMP;
-extern tImage Sleepy8BPP_UNCOMP;
-extern tImage WingedShoe8BPP_UNCOMP;
-extern tImage Bunny8BPP_UNCOMP;
+extern tImage EmpoleonHappy8BPP_UNCOMP;
+extern tImage EmpoleonSad8BPP_UNCOMP;
+extern tImage PrinplupHappy8BPP_UNCOMP;
+extern tImage PrinplupMad8BPP_UNCOMP;
+extern tImage Monkathink8BPP_UNCOMP;
 
 int main(void)
 {
@@ -148,10 +150,10 @@ void Application_loop(Application* app, HAL* hal)
         Graphics_drawLineH(&app->gfx.context, 10, 120, 95);
         Graphics_drawString(&app->gfx.context, (int8_t*) baud, -1, 90, 0, true);
         Graphics_drawString(&app->gfx.context, (int8_t*) age1, -1, 0, 0, true);
-
+        //draws Happy and Energy on the display
         Graphics_drawString(&app->gfx.context, "Happy:", -1, 0, 110, true);
         Graphics_drawString(&app->gfx.context, "Energy:", -1, 0, 120, false);
-
+        //Draws the lines for the happiness and energy meter
         Graphics_drawLineV(&app->gfx.context, 50, 110, 116);
         Graphics_drawLineV(&app->gfx.context, 60, 110, 116);
         Graphics_drawLineV(&app->gfx.context, 70, 110, 116);
@@ -163,7 +165,9 @@ void Application_loop(Application* app, HAL* hal)
         Graphics_drawLineV(&app->gfx.context, 80, 120, 126);
         Graphics_drawLineV(&app->gfx.context, 90, 120, 126);
         //Updates the happiness level
-        //Application_Updateaging(app, hal);
+
+        // Interpret a new character if one is received.
+
         Application_updateHappiness(app, hal);
         //Updates the energy level
         Application_updateEnergy(app, hal);
@@ -174,6 +178,12 @@ void Application_loop(Application* app, HAL* hal)
         if (Button_isTapped(&hal->boosterpackS2) || app->firstCall) {
             Application_updateCommunications(app, hal);
         }
+        if (UART_hasChar(&hal->uart))
+        {
+            Application_interpretIncomingChar(app, hal);
+        }
+
+        Application_Move(app, hal);
 
         if(SWTimer_expired(&app->year))
         {
@@ -181,19 +191,9 @@ void Application_loop(Application* app, HAL* hal)
             app->Age++;
         }
 
-        // Interpret a new character if one is received.
-        if (UART_hasChar(&hal->uart))
-        {
-            Application_interpretIncomingChar(app, hal);
-
-        }
-
-        Application_Move(app, hal);
-
-
-
         //taking the age, the tamagotchi is updated based on age, happiness and energy levels
 
+        Application_sideGraphics(app, hal);
 
         if (app->warmth != true && app->Age >= 1)
         {
@@ -246,7 +246,6 @@ void Application_updateHappiness(Application* app, HAL* hal)
         else
         {
             app->Hap++;
-
         }
     }
 
@@ -365,7 +364,7 @@ void Application_updateCommunications(Application* app, HAL* hal)
         app->firstCall = false;
     }
 
-    // When Boosterpack S1 is tapped, circularly increment which baud rate is used.
+    // When Boosterpack S2 is tapped, circularly increment which baud rate is used.
     if (Button_isTapped(&hal->boosterpackS2))
     {
         uint32_t newBaudNumber = CircularIncrement((uint32_t) app->baudChoice, NUM_BAUD_CHOICES);
@@ -483,20 +482,23 @@ void Application_interpretIncomingChar(Application* app, HAL* hal)
     }
     //if there are 4 valid movements, make the move boolean true which will increase Happiness in the
     //Application_UpdateHappiness function
-    if(app->num_Moves%4 == 0)
+
+    if(app->num_Moves == 4)
     {
         app->Move = true;
+        app->num_Moves = 0;
     }
     else
     {
         app->Move = false;
     }
+
     static int warm = 0;
     if (app->instruction == 'w')
     {
         warm++;
     }
-    if (warm == 2 )
+    if (warm == 2)
     {
         app->warmth = true;
     }
@@ -525,17 +527,36 @@ void Application_Move(Application* app, HAL* hal)
     if (app->Age >= 1 && app->Age <= 3)
     {
         Image = Prinplup8BPP_UNCOMP;
-
     }
-    if (app->Age >= 4 && adult == 1)
+    if (app->Age >= 1 && app->Age <= 3 && app->Hap <= 2)
     {
-        Image = Empoleon8BPP_UNCOMP;
+        Image = PrinplupMad8BPP_UNCOMP;
+    }
 
+    if (app->Age >= 1 && app->Age <= 3 && app->Hap >= 4)
+    {
+        Image = PrinplupHappy8BPP_UNCOMP;
+    }
+    if (app->Age >= 4 && adult == 0 && app->Hap < 2)
+    {
+        Image = PrinplupMad8BPP_UNCOMP;
     }
     if (app->Age >= 4 && adult == 0)
     {
         Image = Prinplup8BPP_UNCOMP;
     }
+    if (app->Age >= 4 && adult == 1)
+    {
+        Image = Empoleon8BPP_UNCOMP;
+    }
+   if(app->Age >= 4 && adult == 1 && app->Hap >= 4)
+    {
+        Image = EmpoleonHappy8BPP_UNCOMP;
+    }
+   if(app->Age >= 4 && adult == 1 && app->Hap < 2)
+   {
+       Image = EmpoleonSad8BPP_UNCOMP;
+   }
     Graphics_drawImage(&app->gfx.context, &Image, app->x, app->y);
     if (app->Eng > 0)
     {
@@ -630,7 +651,6 @@ void Application_HapGraphics(Application* app, HAL* hal)
     {
         Graphics_setForegroundColor(&app->gfx.context, 32768);
         Graphics_drawLineH(&app->gfx.context, 41, 89, 113);
-        //Graphics_drawImage(&app->gfx.context, &Feelsgoodman8BPP_UNCOMP, 95, 105);
     }
     if (app->Hap == 4)
         {
@@ -638,17 +658,14 @@ void Application_HapGraphics(Application* app, HAL* hal)
             Graphics_drawLineH(&app->gfx.context, 81, 89, 113);
             Graphics_setForegroundColor(&app->gfx.context, 32768);
             Graphics_drawLineH(&app->gfx.context, 41, 79, 113);
-            //Graphics_drawImage(&app->gfx.context, &Feelsgoodman8BPP_UNCOMP, 95, 105);
         }
     if (app->Hap == 3)
         {
             Graphics_setForegroundColor(&app->gfx.context, 16777215);
             Graphics_drawLineH(&app->gfx.context, 71, 79, 113);
             Graphics_drawLineH(&app->gfx.context, 81, 89, 113);
-            Graphics_fillCircle(&app->gfx.context, 100, 110, 8);
             Graphics_setForegroundColor(&app->gfx.context, 16776960);
             Graphics_drawLineH(&app->gfx.context, 41, 69, 113);
-            //Graphics_drawImage(&app->gfx.context, &MonkaS8BPP_UNCOMP, 95, 105);
         }
     if (app->Hap == 2)
         {
@@ -658,7 +675,6 @@ void Application_HapGraphics(Application* app, HAL* hal)
             Graphics_drawLineH(&app->gfx.context, 81, 89, 113);
             Graphics_setForegroundColor(&app->gfx.context, 16776960);
             Graphics_drawLineH(&app->gfx.context, 41, 59, 113);
-            //Graphics_drawImage(&app->gfx.context, &MonkaS8BPP_UNCOMP, 95, 105);
         }
     if (app->Hap == 1)
         {
@@ -667,10 +683,8 @@ void Application_HapGraphics(Application* app, HAL* hal)
             Graphics_drawLineH(&app->gfx.context, 61, 69, 113);
             Graphics_drawLineH(&app->gfx.context, 71, 79, 113);
             Graphics_drawLineH(&app->gfx.context, 81, 89, 113);
-            Graphics_fillCircle(&app->gfx.context, 100, 110, 8);
             Graphics_setForegroundColor(&app->gfx.context, 16711680);
             Graphics_drawLineH(&app->gfx.context, 41, 49, 113);
-            //Graphics_drawImage(&app->gfx.context, &PepeHands8BPP_UNCOMP, 95, 105);
         }
     if(app->Hap == 0)
     {
@@ -680,8 +694,6 @@ void Application_HapGraphics(Application* app, HAL* hal)
         Graphics_drawLineH(&app->gfx.context, 61, 69, 113);
         Graphics_drawLineH(&app->gfx.context, 71, 79, 113);
         Graphics_drawLineH(&app->gfx.context, 81, 89, 113);
-        Graphics_fillCircle(&app->gfx.context, 100, 110, 8);
-        //Graphics_drawImage(&app->gfx.context, &PepeHands8BPP_UNCOMP, 100, 97);
 
     }
 
@@ -692,7 +704,6 @@ void Application_EngGraphics(Application* app, HAL* hal)
     {
         Graphics_setForegroundColor(&app->gfx.context, 32768);
         Graphics_drawLineH(&app->gfx.context, 41, 89, 123);
-        //Graphics_drawImage(&app->gfx.context, &Bunny8BPP_UNCOMP, 100, 105);
     }
     if (app->Eng == 4)
         {
@@ -700,17 +711,15 @@ void Application_EngGraphics(Application* app, HAL* hal)
             Graphics_drawLineH(&app->gfx.context, 81, 89, 123);
             Graphics_setForegroundColor(&app->gfx.context, 32768);
             Graphics_drawLineH(&app->gfx.context, 41, 79, 123);
-            //Graphics_drawImage(&app->gfx.context, &Bunny8BPP_UNCOMP, 100, 105);
         }
     if (app->Eng == 3)
         {
             Graphics_setForegroundColor(&app->gfx.context, 16777215);
             Graphics_drawLineH(&app->gfx.context, 71, 79, 123);
             Graphics_drawLineH(&app->gfx.context, 81, 89, 123);
-            Graphics_fillCircle(&app->gfx.context, 105, 105, 10);
             Graphics_setForegroundColor(&app->gfx.context, 16776960);
             Graphics_drawLineH(&app->gfx.context, 41, 69, 123);
-            //Graphics_drawImage(&app->gfx.context, &WingedShoe8BPP_UNCOMP, 110, 107);
+
         }
     if (app->Eng == 2)
         {
@@ -720,7 +729,6 @@ void Application_EngGraphics(Application* app, HAL* hal)
             Graphics_drawLineH(&app->gfx.context, 81, 89, 123);
             Graphics_setForegroundColor(&app->gfx.context, 16776960);
             Graphics_drawLineH(&app->gfx.context, 41, 59, 123);
-            //Graphics_drawImage(&app->gfx.context, &WingedShoe8BPP_UNCOMP, 110, 107);
         }
     if (app->Eng == 1)
         {
@@ -729,10 +737,8 @@ void Application_EngGraphics(Application* app, HAL* hal)
             Graphics_drawLineH(&app->gfx.context, 61, 69, 123);
             Graphics_drawLineH(&app->gfx.context, 71, 79, 123);
             Graphics_drawLineH(&app->gfx.context, 81, 89, 123);
-            Graphics_fillCircle(&app->gfx.context, 105, 105, 10);
             Graphics_setForegroundColor(&app->gfx.context, 16711680);
             Graphics_drawLineH(&app->gfx.context, 41, 49, 123);
-            //Graphics_drawImage(&app->gfx.context, &Sleepy8BPP_UNCOMP, 110, 107);
         }
     if(app->Eng == 0)
     {
@@ -742,8 +748,30 @@ void Application_EngGraphics(Application* app, HAL* hal)
         Graphics_drawLineH(&app->gfx.context, 61, 69, 123);
         Graphics_drawLineH(&app->gfx.context, 71, 79, 123);
         Graphics_drawLineH(&app->gfx.context, 81, 89, 123);
-        //Graphics_drawImage(&app->gfx.context, &Sleepy8BPP_UNCOMP, 110, 107);
 
     }
 
+}
+
+void Application_sideGraphics(Application* app, HAL* hal)
+{
+    tImage Image1;
+    if(app->Hap >=4 && app->Eng >= 4)
+    {
+        Image1 = Feelsgoodman8BPP_UNCOMP;
+    }
+    else if((app->Hap < 4 && app->Hap >=2) && (app->Eng < 4 && app->Eng >= 2))
+    {
+        Image1 = MonkaS8BPP_UNCOMP;
+    }
+    else if(app->Hap < 2 && app->Eng < 2)
+    {
+        Image1 = PepeHands8BPP_UNCOMP;
+    }
+    else
+    {
+        Image1 = Monkathink8BPP_UNCOMP;
+    }
+
+    Graphics_drawImage(&app->gfx.context, &Image1, 100, 100);
 }
