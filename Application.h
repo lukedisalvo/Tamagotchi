@@ -21,8 +21,10 @@ struct _Application
 
     //The Graphics Structure
     GFX gfx;
+    GFX clear;
     //Software Timer
     SWTimer year;
+    SWTimer Timer;
 
     char* Happy;
     char* Energy;
@@ -70,11 +72,6 @@ void Application_Death(Application* app, HAL* hal);
 
 void Application_Move(Application* app, HAL* hal);
 
-void Application_Updateaging(Application* app, HAL* hal);
-
-void Application_Move2(Application* app, HAL* hal);
-
-void Application_Move3(Application* app, HAL* hal);
 
 void Application_HapGraphics(Application* app, HAL* hal);
 

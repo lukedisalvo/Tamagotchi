@@ -91,11 +91,13 @@ Application Application_construct()
     app.firstCall = true;
 
     app.gfx = GFX_construct(GRAPHICS_COLOR_WHITE, GRAPHICS_COLOR_WHITE);
-
+    app.clear = GFX_construct(GRAPHICS_COLOR_WHITE, GRAPHICS_COLOR_WHITE);
 
     app.year = SWTimer_construct(3000);
+    app.Timer = SWTimer_construct(0);
 
     SWTimer_start(&app.year);
+    SWTimer_start(&app.Timer);
 
     //Pre-setting variables used in code
     app.Eng = 5; // Energy level starts at 5
@@ -165,36 +167,50 @@ void Application_loop(Application* app, HAL* hal)
         Graphics_drawLineV(&app->gfx.context, 80, 120, 126);
         Graphics_drawLineV(&app->gfx.context, 90, 120, 126);
         //Updates the happiness level
-
-        // Interpret a new character if one is received.
-
         Application_updateHappiness(app, hal);
-        //Updates the energy level
+
+        //Updates the energy level and makes sets valid movement and feeding.
         Application_updateEnergy(app, hal);
         app->Feed = false;
         app->Move = false;
+
         // Update communications if either this is the first time the application is
         // run or if Boosterpack S1 is pressed.
         if (Button_isTapped(&hal->boosterpackS2) || app->firstCall) {
             Application_updateCommunications(app, hal);
         }
+        // Interpret a new character if one is received.
         if (UART_hasChar(&hal->uart))
         {
             Application_interpretIncomingChar(app, hal);
         }
-
+        //After determining the character, this moves the character to the right position.
         Application_Move(app, hal);
 
+        //This writes the progress bar at the bottom right of the display.
+        static double x = 125;
+        if(SWTimer_expired(&app->Timer))
+        {
+            Graphics_setForegroundColor(&app->gfx.context, 0);
+            Graphics_drawLineH(&app->gfx.context, 100, 125, 124);
+            Graphics_drawLineH(&app->clear.context, x, 125, 124);
+            x = x -.4;
+            SWTimer_start(&app->Timer);
+
+        }
         if(SWTimer_expired(&app->year))
         {
             SWTimer_start(&app->year);
+            Graphics_drawLineH(&app->gfx.context, 100, 125, 124);
+            x = 125;
             app->Age++;
         }
 
-        //taking the age, the tamagotchi is updated based on age, happiness and energy levels
-
+        //Function called for happiness and energy graphics.
         Application_sideGraphics(app, hal);
 
+
+        //Functionality for if character w is not pressed 2 times before the age of 1, then the egg dies.
         if (app->warmth != true && app->Age >= 1)
         {
             app->Eng = 0;
@@ -221,6 +237,7 @@ void Application_loop(Application* app, HAL* hal)
 //If there are 4 valid movements then the happiness level us increased.
 //Takes notHappy as an in from 0-5 and based on its value updates the "Happy" char
 //to be printed on the LCD display in the main loop
+//Uses Application_HapGraphics() to display the happiness meter.
 void Application_updateHappiness(Application* app, HAL* hal)
 {
     app->notHappy = 0;
@@ -280,6 +297,7 @@ void Application_updateHappiness(Application* app, HAL* hal)
 //Also, when there is 4 valid movements, decreases the energy level by 1.
 //Updates an int with values 0-5 and based on those values updates a char
 //that will print on the LCD display in the main loop
+//Uses Application_EngGraphics to print the energy meter graphics
 void Application_updateEnergy(Application* app, HAL* hal)
 {
     app->notEnergetic = 0;
@@ -387,24 +405,18 @@ void Application_updateCommunications(Application* app, HAL* hal)
     {
         // When the baud rate is 9600, turn on Boosterpack LED Red
         case BAUD_9600:
-            //LED_turnOn(&hal->boosterpackRed);
             break;
 
         // TODO: When the baud rate is 19200, turn on Boosterpack LED Green
         case BAUD_19200:
-            //LED_turnOn(&hal->boosterpackGreen);
             break;
 
         // TODO: When the baud rate is 38400, turn on Boosterpack LED Blue
         case BAUD_38400:
-           // LED_turnOn(&hal->boosterpackBlue);
             break;
 
         // TODO: When the baud rate is 57600, turn on all Boosterpack LEDs (illuminates white)
         case BAUD_57600:
-           //LED_turnOn(&hal->boosterpackRed);
-           //LED_turnOn(&hal->boosterpackGreen);
-           //LED_turnOn(&hal->boosterpackBlue);
             break;
 
         // In the default case, this program will do nothing.
@@ -482,7 +494,6 @@ void Application_interpretIncomingChar(Application* app, HAL* hal)
     }
     //if there are 4 valid movements, make the move boolean true which will increase Happiness in the
     //Application_UpdateHappiness function
-
     if(app->num_Moves == 4)
     {
         app->Move = true;
@@ -492,7 +503,7 @@ void Application_interpretIncomingChar(Application* app, HAL* hal)
     {
         app->Move = false;
     }
-
+    //supporting code for sending warmth to the egg
     static int warm = 0;
     if (app->instruction == 'w')
     {
@@ -644,7 +655,11 @@ void Application_Move(Application* app, HAL* hal)
 
 }
 
-
+//Application_HapGraphics takes the values for happiness and prints out a happiness meter
+//if Happiness is greater than 4 the meter is green
+//if happiness 2 or 3, the meter is yellow
+//if happiness is 1 the meter is red
+//if happiness is 0 then there is no meter.
 void Application_HapGraphics(Application* app, HAL* hal)
 {
     if (app->Hap == 5)
@@ -698,6 +713,11 @@ void Application_HapGraphics(Application* app, HAL* hal)
     }
 
 }
+//Application_EngGraphics takes the values for Energy and prints out a happiness meter
+//if Energy is greater than 4 the meter is green
+//if Energy 2 or 3, the meter is yellow
+//if Energy is 1 the meter is red
+//if energy is 0 then there is no meter.
 void Application_EngGraphics(Application* app, HAL* hal)
 {
     if (app->Eng == 5)
@@ -752,7 +772,11 @@ void Application_EngGraphics(Application* app, HAL* hal)
     }
 
 }
-
+//Application_sideGraphics takes the values of energy and happiness and prints out a specific image for that range.
+//When they are both greater than or equal to 4, a certain image is printed.
+//When they are between 2 and 4, a certain image is printed
+//When they are both below 2, a certain image is printed.
+//Any other combinations a certain image is printed.
 void Application_sideGraphics(Application* app, HAL* hal)
 {
     tImage Image1;
